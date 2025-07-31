@@ -27,7 +27,7 @@
   (if (empty? mvs)
     [:pure ()]
     (mdo [v (first mvs)
-          r (sequenceM (rest mvs))
+          r (m-seq (rest mvs))
           _ [:pure (cons v r)]])))
 
 (defn m-map
