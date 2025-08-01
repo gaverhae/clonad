@@ -20,3 +20,17 @@
       (if (empty? r)
         v
         [:bind v `(fn [~n] (mdo ~r))]))))
+
+(defn m-seq
+  "[m v] -> m [v]"
+  [mvs]
+  (if (empty? mvs)
+    [:pure ()]
+    (mdo [v (first mvs)
+          r (sequenceM (rest mvs))
+          _ [:pure (cons v r)]])))
+
+(defn m-map
+  "(a -> m b) -> [a] -> m [b]"
+  [f args]
+  (m-seq (map f args)))
