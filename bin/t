@@ -1,0 +1,29 @@
+#!/usr/bin/env bb
+
+(ns t
+  (:require [babashka.fs :as fs]
+            [babashka.process :as p]))
+
+(defn repl
+  [dir]
+  (p/shell "bash" "-c" (format "cd %s; clj -M:cider-clj"
+                               dir)))
+
+(defn run-tests
+  [dir]
+  (p/shell "bash" "-c" (format "cd %s; watchexec -w src -w test -c -- clj -X:test"
+                               dir)))
+
+(defn -main
+  [dir & args]
+  (cond
+    (= ["repl"] args) (repl dir)
+    (= ["test"] args) (run-tests dir)
+    :else (do (println "Unrecognized command:")
+              (prn args)
+              (System/exit 1))))
+
+(if (= *file* (System/getProperty "babashka.file"))
+  (apply -main
+         (fs/parent (fs/parent *file*))
+         *command-line-args*))
