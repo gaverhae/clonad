@@ -23,18 +23,14 @@
 
 (defn build-monadic-value
   [bs]
-  (cond (= 1 (count bs))
+  (cond (empty? bs) []
+        (and (>= (count bs) 3) (= :<< (second bs)))
+        (let [[binding-form _ expr & tl] bs]
+          [:bind expr `(fn [~binding-form] ~(build-monadic-value tl))])
+        (= 1 (count bs))
         (first bs)
-
-        (and (symbol? (first bs)) (= :<< (second bs)) (>= (count bs) 3))
-        (let [[sym _ expr & tl] bs]
-          [:bind expr `(fn [~sym] ~(build-monadic-value tl))])
-
-        (and (>= (count bs) 1) (not (keyword? (first bs))))
-        (let [[expr & tl] bs]
-          [:bind expr `(fn [~(gensym)] ~(build-monadic-value tl))])
         :else
-        (ex-info "Shouldn't happen." bs)))
+        [:bind (first bs) `(fn [~(gensym)] ~(build-monadic-value (rest bs)))]))
 
 (defmacro monad
   "Builds a monadic value. Takes a collection of bindings and monadic values;
@@ -47,15 +43,7 @@
     b :<< (monadic-fun a)
     (other-monadic-fun a b))"
   [& bindings-or-statements]
-  (let [bs bindings-or-statements]
-    (loop [bs bs]
-      (cond (empty? bs) :done
-            (and (symbol? (nth bs 0))
-                 (= :<< (nth bs 1))
-                 (not (keyword? (nth bs 2)))) (recur (drop 3 bs))
-            (not (keyword? (first bs))) (recur (rest bs))
-            :else (throw (ex-info "Binding form looks incorrect; each form should be either a single monadic value or a binding: a symbol followed by :<< followed by a monadic value." {}))))
-    (build-monadic-value bs)))
+  (build-monadic-value bindings-or-statements))
 
 (defn m-seq
   "[m v] -> m [v]"
