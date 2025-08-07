@@ -12,11 +12,11 @@
                    (run-plain (f a)))))
 
 (deftest old-syntax
-  (is (= 12
+  (is (= 60
          (run-plain
            (mdo [a [:pure 3]
-                 b [:pure 4]
-                 _ [:pure (* a b)]])))))
+                 [b c] [:pure [4 5]]
+                 _ [:pure (* a b c)]])))))
 
 (deftest new-syntax
   (is (= '[:bind [:pure 3] (clojure.core/fn [a] [:bind [:pure 4] (clojure.core/fn [b] [:pure (* a b)])])]
@@ -25,9 +25,9 @@
               a :<< [:pure 3]
               b :<< [:pure 4]
               [:pure (* a b)]))))
-  (is (= 12
+  (is (= 60
          (run-plain
            (monad
              a :<< [:pure 3]
-             b :<< [:pure 4]
-             [:pure (* a b)])))))
+             [b c] :<< [:pure [4 5]]
+             [:pure (* a b c)])))))
