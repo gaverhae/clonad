@@ -54,7 +54,7 @@
                  (= :<< (nth bs 1))
                  (not (keyword? (nth bs 2)))) (recur (drop 3 bs))
             (not (keyword? (first bs))) (recur (rest bs))
-            :else (throw (ex-info "Binding form looks incorrect; each form should be either a single monadic value or a binding: a symbol followed by :<< followed by a monadic value."))))
+            :else (throw (ex-info "Binding form looks incorrect; each form should be either a single monadic value or a binding: a symbol followed by :<< followed by a monadic value." {}))))
     (build-monadic-value bs)))
 
 (defn m-seq
