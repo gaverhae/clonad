@@ -22,39 +22,48 @@
         [:bind v `(fn [~n] (mdo ~r))]))))
 
 (defn build-monadic-value
-  [bs]
+  [prefix bs]
   (cond (empty? bs) []
         (and (>= (count bs) 3) (= :<< (second bs)))
         (let [[binding-form _ expr & tl] bs]
-          [:bind expr `(fn [~binding-form] ~(build-monadic-value tl))])
+          [(keyword prefix "bind") expr `(fn [~binding-form] ~(build-monadic-value prefix tl))])
         (= 1 (count bs))
         (first bs)
         :else
-        [:bind (first bs) `(fn [~(gensym)] ~(build-monadic-value (rest bs)))]))
+        [(keyword prefix "bind") (first bs) `(fn [~(gensym)] ~(build-monadic-value prefix (rest bs)))]))
 
 (defmacro monad
   "Builds a monadic value. Takes a collection of bindings and monadic values;
-  a binding is a triplet of the form
-  symbol :<< monadic-value
-  Example:
-  (monad
-    a :<< [:pure 3]
-    (side-effecting-monadic-value a)
-    b :<< (monadic-fun a)
-    (other-monadic-fun a b))"
-  [& bindings-or-statements]
-  (build-monadic-value bindings-or-statements))
+   a binding is a triplet of the form
+
+       symbol :<< monadic-value
+
+   Example:
+
+       (monad
+         a :<< [:pure 3]
+         (side-effecting-monadic-value a)
+         b :<< (monadic-fun a)
+         (other-monadic-fun a b))
+
+   If the very first argument is an unqualified keyword, it will be used as
+   the namespace segment for generated bind and pure values."
+  [a & bindings-or-statements]
+  (cond (and (keyword? a)
+             (nil? (namespace a))) (build-monadic-value (name a) bindings-or-statements)
+        :else (build-monadic-value nil (cons a bindings-or-statements))))
+
+(defn return
+  ([v] [:pure v])
+  ([kw v] [(keyword (name kw) "pure") v]))
 
 (defn m-seq
   "[m v] -> m [v]"
-  [mvs]
-  (if (empty? mvs)
-    [:pure ()]
-    (mdo [v (first mvs)
-          r (m-seq (rest mvs))
-          _ [:pure (cons v r)]])))
-
-(defn m-map
-  "(a -> m b) -> [a] -> m [b]"
-  [f args]
-  (m-seq (map f args)))
+  ([mvs] (m-seq (keyword nil "") mvs))
+  ([prefix mvs]
+   (if (empty? mvs)
+     (return prefix ())
+     (monad prefix
+       v :<< (first mvs)
+       r :<< (m-seq prefix (rest mvs))
+       (return prefix (cons v r))))))
