@@ -38,7 +38,7 @@
               a :<< [:m/pure 3]
               b :<< [:m/pure 4]
               [:m/pure (* a b)]))))
-  #_(is (= 10
+  (is (= 10
          (run-plain-m
            (monad :m
              values :<< (t/m-seq :m [[:m/pure 1] [:m/pure 2] [:m/pure 3] [:m/pure 4]])
